@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import HOSPITALS, BLOODBANK
+from .models import HOSPITALS, BLOODBANK, OTP
 
 class HospitalSerializer(serializers.ModelSerializer):
     
@@ -41,3 +41,13 @@ class BloodBankSerializer(serializers.ModelSerializer):
             'o_pve',
         ]
         ordering = ['name']        
+class OTPSerializer(serializers.ModelSerializer):
+   
+
+    class Meta:
+        model = OTP
+        fields = [
+            'no',
+            'otp',
+        ]
+        ordering = ['no']        

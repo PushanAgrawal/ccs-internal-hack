@@ -66,8 +66,12 @@ class MEDICINE(models.Model):
 
 class DISTANCE(models.Model):
     hid=models.IntegerField()
-    dist=models.IntegerField()
+    uid=models.IntegerField()
 
+
+class OTP(models.Model):
+    no=models.IntegerField()
+    otp=models.IntegerField()
         
 
        
