@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import HOSPITALS, BLOODBANK, OTP
+from .models import HOSPITALS, BLOODBANK, OTP, DISTANCE
 
 class HospitalSerializer(serializers.ModelSerializer):
     
@@ -49,5 +49,15 @@ class OTPSerializer(serializers.ModelSerializer):
         fields = [
             'no',
             'otp',
+        ]
+        ordering = ['no']        
+class DISTANCESerializer(serializers.ModelSerializer):
+   
+
+    class Meta:
+        model = DISTANCE
+        fields = [
+            'hid',
+            'uid',
         ]
         ordering = ['no']        

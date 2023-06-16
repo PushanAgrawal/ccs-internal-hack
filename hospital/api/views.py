@@ -1,6 +1,6 @@
 from django.shortcuts import render
 import requests
-
+import re
 
 from bs4 import BeautifulSoup
 from django.http import HttpResponse, JsonResponse
@@ -24,7 +24,83 @@ import random
 
 from api.models import Message
 
+def getcurrentusers( lon, lat):
+    
+        
 
+        
+    url = "https://api.geoapify.com/v2/places?categories=healthcare.hospital&filter=circle:"+lon+","+lat+",5000&bias=proximity:"+lon+","+lat+"&limit=20&apiKey=7e6937c7b9a74890be81ba8fd55c79bf"
+          
+    response = requests.get(url)
+    ans=response.json()
+    hospitals=[]
+    hospitals1=[]
+    for i in ans['features']:
+        name=i["properties"]["name"]
+        if re.search('eyes|eye|oral|dental|dentist|Eye|Eyes|Oral|Dental', name):
+            continue
+        cordinates=(str(i["properties"]["lon"]),str(i["properties"]["lat"]))
+        hospitals.append((name,cordinates))  
+
+        headers = {
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive',
+            'Origin': 'https://docs.mapbox.com',
+            'Referer': 'https://docs.mapbox.com/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-site',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+            'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+        }
+
+        params = {
+            'alternatives': 'true',
+            'geometries': 'geojson',
+            'language': 'en',
+            'overview': 'full',
+            'steps': 'true',
+            'access_token': 'pk.eyJ1IjoiZXhhbXBsZXMiLCJhIjoiY2p0MG01MXRqMW45cjQzb2R6b2ptc3J4MSJ9.zA2W0IkI0c6KaAhJfk9bWg',
+        }
+        url='https://api.mapbox.com/directions/v5/mapbox/driving/'+lon+'%2C'+lat+'%3B'+cordinates[0]+'%2C'+cordinates[1]
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers,
+        )  
+        resu=response.json()
+
+        
+        if len(resu["routes"])!=0:
+            time=resu["routes"][0]["duration"]
+            hospitals1.append([name,cordinates,time])
+ 
+
+    avaliable_hospital=[]
+    for i in hospitals1:
+        print(i[0].lower())
+        host= HOSPITALS.objects.filter(name=i[0].lower()) .values()
+        if(len(host)==0):
+            continue
+        
+         
+        id=int(host[0]['id'])
+        all_obj=DISTANCE.objects.filter(hid=id)
+        no_of_beds=host[0]["beds"]
+        if (no_of_beds>len(all_obj)):
+            i.append(id)
+            avaliable_hospital.append(i)
+            
+            
+    data={
+        'hospitals':avaliable_hospital
+    }
+        
+    return data
+    
 
 class GetHospitals(APIView):
     def get(self, request, format=None):
@@ -39,91 +115,28 @@ class GetHospitals(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 class GetNearestHospitals(APIView):
-    renderer_classes = [JSONRenderer]
-    def getcurrentusers(self , lon,lat, id):
-        
-
-        
-        headers = {
-            'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
-            'Referer': 'https://docs.mapbox.com/',
-            'sec-ch-ua-mobile': '?0',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-            'sec-ch-ua-platform': '"Windows"',
-        }
-
-        params = {
-            'proximity': lon+","+lat,
-            'access_token': 'pk.eyJ1IjoicGtkb24iLCJhIjoiY2xpd3dnb2RoMDI2cjNmcWZlNmxtYzVxdiJ9.qF7UqnKsXemy5I5oWoHsCA',
-            'limit': '10'
-        }
-
-        response = requests.get('https://api.mapbox.com/geocoding/v5/mapbox.places/hospitals.json', params=params, headers=headers)
-        ans=response.json()
-        hospitals=[]
-        for i in ans['features']:
-            name=i["text"]
-            if re.search('eyes|eye|oral|dental|dentist', name):
-                continue
-            cordinates=(str(i["geometry"]["coordinates"][0]),str(i["geometry"]["coordinates"][1]))
-            # hospitals.append((name,cordinates))  
-            
- 
-            headers = {
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Connection': 'keep-alive',
-                'Origin': 'https://docs.mapbox.com',
-                'Referer': 'https://docs.mapbox.com/',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-site',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-                'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"Windows"',
-            }
-
-            params = {
-                'alternatives': 'true',
-                'geometries': 'geojson',
-                'language': 'en',
-                'overview': 'full',
-                'steps': 'true',
-                'access_token': 'pk.eyJ1IjoiZXhhbXBsZXMiLCJhIjoiY2p0MG01MXRqMW45cjQzb2R6b2ptc3J4MSJ9.zA2W0IkI0c6KaAhJfk9bWg',
-            }
-            url='https://api.mapbox.com/directions/v5/mapbox/driving/'+lat+'%2C'+lon+'%3B'+cordinates[0]+'%2C'+cordinates[1]
-            response = requests.get(
-                url,
-                params=params,
-                headers=headers,
-            )  
-            resu=response.json()
-            
-            if len(resu["routes"])!=0:
-                time=resu["routes"][0]["duration"]
-                hospitals.append([name,cordinates,time])
-                
-        hospitals= sorted(hospitals,key=lambda x:x[2])   
-        print(hospitals) 
-        avaliable_hospital=[]
-        for i in hospitals:
-            host= HOSPITALS.objects.get(name=lower(i))       
-            id=host['id']
-            all_obj=DISTANCE.objects.filter(hid=id)
-            no_of_beds=host.beds
-            if (no_of_beds>len(all_obj)):
-               avaliable_hospital.append(i)
-               
-        data={
-            'hospitals':avaliable_hospital
-        }
-            
-        return data
+  
     
-    def get(self , lon,lat, id):
-        data=self.getcurrentusers(lon,lat,id)
-        return Response(data)
+    
+    def get(self,request, format=None):
+        data = JSONParser().parse(request)
+        print(data)
+        lon=str(data['lon'])
+        lat=str(data["lat"])
+        id=str(data["id"])
+        
+        data=getcurrentusers(lon,lat)
+        return Response(data,status=status.HTTP_200_OK)
+    def put(elf, request, format=None):
+        data = JSONParser().parse(request)
+        lon=str(data['lon'])
+        lat=str(data["lat"])
+        id=str(data["id"])
+        idu=str(data["idu"])
+        obj=DISTANCE(data={'hid':id,
+            'uid':idu
+        })
+        obj
     
 class GETOTP(APIView):
 
@@ -133,11 +146,14 @@ class GETOTP(APIView):
         otp=str(data["otp"])
 
         obj=OTP.objects.filter(no=number).values()
-        print(obj)
+        data={
+            "id":obj[0]["id"]
+        }
+
         if str(obj[0]['otp'])==str(otp):
             return Response(status=status.HTTP_202_ACCEPTED)
         else:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
+            return Response(data=data,status=status.HTTP_401_UNAUTHORIZED)
 
   
    
